@@ -9,7 +9,7 @@ import urllib.error
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Fetch and display GitHub user activity.")
     parser.add_argument("username", help="GitHub username to fetch activity for")
-    parser.add_argument("-n", "--num-events", type=int, default=5, help="Number of recent events to display (default: 5)")
+    parser.add_argument("-n", "--num-events", type=int, default=3, help="Number of recent events to display (default: 3)")
     return parser.parse_args()
 
 def fetch_events(username, limit=5, token=None):
@@ -38,31 +38,31 @@ def fetch_events(username, limit=5, token=None):
         print("Error: Failed to parse JSON response")
         sys.exit(1)
 
-def display_events(event):
+def display_events(events):
     for event in events:
         event_type = event.get("type")
         repo_name = event.get("repo", {}).get("name", "unknown repo")
 
         if event_type == "PushEvent":
-            commits = len(event["payload"]["commits"])
+            commits = len(event.get("payload", {}).get("commits", []))
             print(f"- Pushed {commits} commit(s) to {repo_name}")
         elif event_type == "IssuesEvent":
-            action = event["payload"]["action"]
-            issue_number = event["payload"]["issue"]["number"]
+            action = event.get("payload", {}).get("action", "unknown")
+            issue_number = event.get("payload", {}).get("issue", {}).get("number", "?")
             print(f"- {action.capitalize()} issue #{issue_number} in {repo_name}")
         elif event_type == "PullRequestEvent":
-            action = event["payload"]["action"]
-            pr_number = event["payload"]["pull_request"]["number"]
+            action = event.get("payload", {}).get("action", "unknown")
+            pr_number = event.get("payload", {}).get("pull_request", {}).get("number", "?")
             print(f"- {action.capitalize()} pull request #{pr_number} in {repo_name}")
         elif event_type == "WatchEvent":
             print(f"- Starred {repo_name}")
         elif event_type == "ForkEvent":
             print(f"- Forked {repo_name}")
         else:
-            # fallback for unhandled event types
             print(f"- {event_type} on {repo_name}")
 
 if __name__ == "__main__":
     args = parse_arguments()
+    print(args)
     events = fetch_events(args.username, limit=args.num_events)
     display_events(events)
